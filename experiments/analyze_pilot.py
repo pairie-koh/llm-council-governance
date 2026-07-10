@@ -965,7 +965,7 @@ def generate_report(
         lines.append("No results to analyze.")
         report = "\n".join(lines)
         if output_path:
-            Path(output_path).write_text(report)
+            Path(output_path).write_text(report, encoding="utf-8")
         return report
 
     # Overview
@@ -1249,7 +1249,7 @@ def generate_report(
 
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        Path(output_path).write_text(report)
+        Path(output_path).write_text(report, encoding="utf-8")
 
     return report
 

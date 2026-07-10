@@ -271,7 +271,7 @@ def generate_comparison_report(
 
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(report)
 
     return report

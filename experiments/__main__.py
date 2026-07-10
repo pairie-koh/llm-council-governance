@@ -87,7 +87,7 @@ def analyze(results_dir: str, output: Optional[str]):
         # Copy the generated report to the specified output
         report_path = results_path / "analysis_report.txt"
         if report_path.exists():
-            Path(output).write_text(report_path.read_text())
+            Path(output).write_text(report_path.read_text(encoding="utf-8"), encoding="utf-8")
             click.echo(f"Report saved to {output}")
 
     click.echo(f"\nAnalysis complete. {len(df)} trials analyzed.")
