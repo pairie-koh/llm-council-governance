@@ -124,11 +124,23 @@ def analyze(results_dir: str):
     stage1_graded = {}
     for r in records:
         graded = grade_stage1(r)
-        if graded and len(graded) >= 2:
+        if not graded:
+            continue
+        # Council members are provider/model slugs. Self-consistency stores
+        # its temp-0.7 chairman samples as sample_0..sample_N - those are not
+        # council members and must not enter member-level analyses.
+        graded = {m: v for m, v in graded.items() if "/" in m}
+        if len(graded) >= 2:
             stage1_graded[(r["benchmark"], r["question_id"], r["structure"])] = (
                 graded,
                 r,
             )
+
+    # Stage 1 is shared across structures (paired design), so per-question
+    # quantities must count each question once, not once per structure.
+    stage1_by_question = {}
+    for (b, q, _s), (graded, r) in stage1_graded.items():
+        stage1_by_question.setdefault((b, q), (graded, r))
 
     # ------------------------------------------------------------------
     # 2. Individual model accuracy (stage-1, pooled across structures)
@@ -138,7 +150,7 @@ def analyze(results_dir: str):
     print("-" * 70)
     for bench in benchmarks:
         per_model = defaultdict(list)
-        for (b, _q, _s), (graded, _r) in stage1_graded.items():
+        for (b, _q), (graded, _r) in stage1_by_question.items():
             if b != bench:
                 continue
             for model, (correct, _pred) in graded.items():
@@ -163,10 +175,10 @@ def analyze(results_dir: str):
     print("-" * 70)
     for bench in benchmarks:
         n_options = EVALUATORS.get(bench, (None, None))[1]
-        # one correctness vector per model over (question, structure) cells,
+        # one correctness vector per model over question cells,
         # aligned on cells where all models are present
         cells = [
-            (graded, r) for (b, _q, _s), (graded, r) in stage1_graded.items()
+            (graded, r) for (b, _q), (graded, r) in stage1_by_question.items()
             if b == bench
         ]
         if not cells:
@@ -237,7 +249,7 @@ def analyze(results_dir: str):
     print("-" * 70)
     for bench in benchmarks:
         counts = defaultdict(int)
-        for (b, _q, s), (graded, _r) in stage1_graded.items():
+        for (b, _q), (graded, _r) in stage1_by_question.items():
             if b != bench:
                 continue
             counts[sum(c for c, _p in graded.values())] += 1
