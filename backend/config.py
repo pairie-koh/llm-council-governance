@@ -33,14 +33,16 @@ if USE_CHEAP_MODELS:
         "openchat/openchat-7b:free",                   # Different architecture
     ]
 else:
-    # Frontier models for real pilot study (December 2025)
+    # Frontier models for real pilot study (verified on OpenRouter July 2026)
+    # NOTE: previous slugs x-ai/grok-4 and google/gemini-3-pro-preview no
+    # longer exist on OpenRouter and would 404.
     COUNCIL_MODELS = [
-        "openai/gpt-5.2",                    # GPT-5.2 (Dec 2025)
-        "google/gemini-3-pro-preview",       # Gemini 3 Pro (Nov 2025)
-        "anthropic/claude-opus-4.5",         # Claude Opus 4.5 (Nov 2025)
-        "x-ai/grok-4",                       # Grok 4 (Jul 2025)
+        "openai/gpt-5.5",                    # GPT-5.5 (Apr 2026)
+        "google/gemini-3.1-pro-preview",     # Gemini 3.1 Pro (Feb 2026)
+        "anthropic/claude-opus-4.8",         # Claude Opus 4.8 (May 2026)
+        "x-ai/grok-4.5",                     # Grok 4.5 (Jul 2026)
     ]
-    CHAIRMAN_MODEL = "anthropic/claude-opus-4.5"
+    CHAIRMAN_MODEL = "anthropic/claude-opus-4.8"
 
     # Extended model pool for council size experiments
     EXTENDED_MODELS = COUNCIL_MODELS + [
