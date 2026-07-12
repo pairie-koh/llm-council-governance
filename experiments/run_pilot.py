@@ -32,8 +32,21 @@ def save_results(
     output_path.mkdir(parents=True, exist_ok=True)
 
     filepath = output_path / filename
-    with open(filepath, "w") as f:
+    # Crash-safe write: the target file must never be exposed to a partial
+    # or unflushed state (a hard power loss once zero-filled 7MB of results).
+    # 1. Write to a temp file, fsync so the bytes reach disk.
+    # 2. Copy the current file to .bak (survives a crash during the swap).
+    # 3. Atomically replace the target.
+    tmp_path = output_path / (filename + ".tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, default=str)
+        f.flush()
+        os.fsync(f.fileno())
+    if filepath.exists():
+        import shutil
+
+        shutil.copyfile(filepath, output_path / (filename + ".bak"))
+    os.replace(tmp_path, filepath)
 
 
 def load_results(
@@ -51,11 +64,16 @@ def load_results(
         List of result dictionaries, or empty list if file doesn't exist
     """
     filepath = Path(output_dir) / filename
-    if not filepath.exists():
-        return []
-
-    with open(filepath) as f:
-        return json.load(f)
+    bak_path = Path(output_dir) / (filename + ".bak")
+    for candidate in (filepath, bak_path):
+        if not candidate.exists():
+            continue
+        try:
+            with open(candidate, encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            print(f"WARNING: {candidate} is corrupt, trying backup")
+    return []
 
 
 def get_completed_keys(results: List[Dict[str, Any]]) -> set:
