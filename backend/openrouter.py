@@ -57,6 +57,7 @@ def _is_retryable_error(exception: BaseException) -> bool:
 
     Only retry on:
     - Timeouts
+    - Transport failures (ConnectError, ReadError, RemoteProtocolError, ...)
     - Rate limits (429)
     - Server errors (5xx)
 
@@ -64,6 +65,11 @@ def _is_retryable_error(exception: BaseException) -> bool:
     - Client errors (400, 401, 403, 404) - these won't be fixed by retrying
     """
     if isinstance(exception, httpx.TimeoutException):
+        return True
+    # TransportError covers ConnectError/ReadError/WriteError/RemoteProtocolError
+    # etc. — a flaky network must not kill a trial. TimeoutException is also a
+    # TransportError subclass, but keep the explicit check above for clarity.
+    if isinstance(exception, httpx.TransportError):
         return True
     if isinstance(exception, httpx.HTTPStatusError):
         status = exception.response.status_code
