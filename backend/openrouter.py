@@ -17,6 +17,11 @@ from backend.config import DEFAULT_API_TIMEOUT, OPENROUTER_API_URL, OPENROUTER_A
 
 logger = logging.getLogger(__name__)
 
+# Models that reject sampling parameters (temperature etc.) with a 400.
+# Claude Fable 5 removes them at the API level; matching is by substring
+# so provider-prefixed OpenRouter slugs are covered.
+NO_SAMPLING_PARAM_MODELS = ("claude-fable",)
+
 # Shared HTTP client for connection pooling (10-20x fewer TCP handshakes)
 _shared_client: Optional[httpx.AsyncClient] = None
 _client_lock = asyncio.Lock()
@@ -100,6 +105,12 @@ async def _make_api_request(
         pool=60.0,  # Pool timeout for waiting on connections
     )
 
+    payload: Dict[str, Any] = {"model": model, "messages": messages}
+    # Some frontier models (Claude Fable 5) reject sampling parameters
+    # outright (400). Omit temperature for those; include it elsewhere.
+    if not any(m in model for m in NO_SAMPLING_PARAM_MODELS):
+        payload["temperature"] = temperature
+
     async def do_request():
         response = await client.post(
             OPENROUTER_API_URL,
@@ -107,11 +118,7 @@ async def _make_api_request(
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-            },
+            json=payload,
             timeout=request_timeout,
         )
         response.raise_for_status()

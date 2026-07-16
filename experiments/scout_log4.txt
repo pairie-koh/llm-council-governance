@@ -1,0 +1,72 @@
+Loaded 80 HLE MCQ questions
+Resuming with 112 records (112 clean)
+To run: 293 calls across 5 models
+  10/293 done | cumulative cost $6.89
+  20/293 done | cumulative cost $8.04
+  30/293 done | cumulative cost $8.71
+  40/293 done | cumulative cost $10.29
+  50/293 done | cumulative cost $11.46
+  60/293 done | cumulative cost $13.00
+  70/293 done | cumulative cost $13.54
+  80/293 done | cumulative cost $13.99
+  90/293 done | cumulative cost $14.61
+  100/293 done | cumulative cost $15.20
+  110/293 done | cumulative cost $16.06
+  120/293 done | cumulative cost $17.77
+  130/293 done | cumulative cost $18.95
+  140/293 done | cumulative cost $21.25
+  150/293 done | cumulative cost $22.45
+  160/293 done | cumulative cost $22.99
+  170/293 done | cumulative cost $23.58
+  180/293 done | cumulative cost $24.02
+  190/293 done | cumulative cost $24.47
+  200/293 done | cumulative cost $25.17
+  210/293 done | cumulative cost $26.06
+  220/293 done | cumulative cost $26.59
+  230/293 done | cumulative cost $26.84
+  240/293 done | cumulative cost $27.15
+  250/293 done | cumulative cost $27.55
+  260/293 done | cumulative cost $27.78
+  270/293 done | cumulative cost $28.04
+  280/293 done | cumulative cost $28.27
+  290/293 done | cumulative cost $28.51
+  293/293 done | cumulative cost $28.85
+
+======================================================================
+PHASE-2 SCOUT ANALYSIS
+======================================================================
+Records: 405 | total cost $28.85
+
+1. PER-MODEL OUTCOMES
+  anthropic/claude-fable-5               acc=52.5% (n=80)  wrong=18 refused=18 no_answer=2 error=0 cost=$9.09
+  anthropic/claude-opus-4.8              acc=40.0% (n=80)  wrong=45 refused=0 no_answer=3 error=0 cost=$1.85
+  google/gemini-3.1-pro-preview          acc=50.0% (n=80)  wrong=33 refused=0 no_answer=7 error=0 cost=$9.95
+  openai/gpt-5.6-sol                     acc=48.8% (n=80)  wrong=40 refused=0 no_answer=1 error=0 cost=$2.75
+  x-ai/grok-4.20                         acc= 0.0% (n=5)  wrong=5 refused=0 no_answer=0 error=0 cost=$0.05
+  x-ai/grok-4.5                          acc=43.8% (n=80)  wrong=42 refused=0 no_answer=3 error=0 cost=$5.16
+
+2. AGREEMENT PROFILE (council v2 members only)
+  0/4 right: 11
+  1/4 right: 7
+  2/4 right: 4
+  3/4 right: 9
+  4/4 right: 23
+  MINORITY-CORRECT CELLS (exactly 1 right): 7
+  (gate: >= ~40 justifies the full council run)
+
+3. PAIRWISE ERROR CORRELATION (phi) + same-wrong rate
+  claude-fable-5           x claude-opus-4.8          phi=+0.601  same-wrong=17/17  (n=58)  <-- INTRA-VENDOR
+  claude-fable-5           x gemini-3.1-pro-preview   phi=+0.568  same-wrong=10/12  (n=54)
+  claude-fable-5           x gpt-5.6-sol              phi=+0.675  same-wrong=12/17  (n=60)
+  claude-fable-5           x grok-4.5                 phi=+0.572  same-wrong=13/16  (n=59)
+  claude-opus-4.8          x gemini-3.1-pro-preview   phi=+0.439  same-wrong=19/26  (n=72)
+  claude-opus-4.8          x gpt-5.6-sol              phi=+0.433  same-wrong=23/30  (n=76)
+  claude-opus-4.8          x grok-4.5                 phi=+0.469  same-wrong=26/33  (n=76)
+  gemini-3.1-pro-preview   x gpt-5.6-sol              phi=+0.667  same-wrong=24/28  (n=72)
+  gemini-3.1-pro-preview   x grok-4.5                 phi=+0.535  same-wrong=20/27  (n=72)
+  gpt-5.6-sol              x grok-4.5                 phi=+0.640  same-wrong=25/33  (n=77)
+
+4. MINORITY-CORRECT CELL DETAIL (who was the lone dissenter?)
+  anthropic/claude-fable-5               lone-correct on 5 questions
+  google/gemini-3.1-pro-preview          lone-correct on 1 questions
+  x-ai/grok-4.5                          lone-correct on 1 questions
