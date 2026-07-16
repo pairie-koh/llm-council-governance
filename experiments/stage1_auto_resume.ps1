@@ -28,7 +28,7 @@ if (Test-Path $results) {
 Log "runner not found at $n/1870 records - relaunching"
 $env:PYTHONUTF8 = '1'
 Start-Process -FilePath "python" `
-    -ArgumentList "-u", "-m", "experiments.run_phase2_stage1" `
+    -ArgumentList "-u", "-m", "experiments.run_phase2_stage1", "--max-concurrent", "16" `
     -WorkingDirectory $repo `
     -RedirectStandardOutput "$repo\experiments\results_phase2_stage1\run_stdout.log" `
     -RedirectStandardError "$repo\experiments\results_phase2_stage1\run_stderr.log" `

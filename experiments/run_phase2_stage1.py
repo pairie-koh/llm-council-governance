@@ -44,7 +44,7 @@ from experiments.run_phase2_scout import (
 SCOUT_RESULTS = Path("experiments/results_phase2_scout/scout_results.json")
 
 # Anthropic direct is rate-limited more tightly than OpenRouter fan-out.
-ANTHROPIC_MAX_CONCURRENT = 4
+ANTHROPIC_MAX_CONCURRENT = 8
 
 
 def seed_from_scout(results: list, eligible_qids: set) -> list:
