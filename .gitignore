@@ -50,13 +50,22 @@ Thumbs.db
 # Claude Code
 .claude/
 
-# Experiment scratch logs (top-level of experiments/ only; results_*/ dirs
-# with real data are committed deliberately)
+# Experiment scratch logs (real result JSON in results_*/ dirs is committed
+# deliberately; only logs and process stdio are ignored, at any depth)
 experiments/*.log
 experiments/*.err
+experiments/**/*.log
+experiments/**/run_stdout.log
+experiments/**/run_stderr.log
+experiments/**/auto_resume.log
 experiments/scout_log*.txt
 experiments/scout_err*.txt
 experiments/smoke_log*.txt
+experiments/council_types_run*.log
+experiments/council_types_run*.err
+
+# Crash artifacts (zero-filled checkpoints from power loss)
+*.zeroed-crash
 
 # Experiment caches and throwaway result dirs
 experiments/.cache/

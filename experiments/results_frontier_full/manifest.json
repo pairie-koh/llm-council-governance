@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-07-13T01:11:55.380937",
+  "git": {
+    "sha": "bc89458e190bfb766575bcf8d06a0f00ddc35f60",
+    "dirty": true
+  },
+  "environment": {
+    "python_version": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "win32",
+    "hostname": "ashlaptop"
+  },
+  "packages": {
+    "httpx": "0.28.1",
+    "datasets": "4.8.4",
+    "pandas": "2.3.1",
+    "scipy": "1.16.3",
+    "tenacity": "9.1.2",
+    "matplotlib": "3.10.7"
+  },
+  "config": {
+    "structures": [
+      "Independent \u2192 Rank \u2192 Synthesize",
+      "Independent \u2192 Majority Vote",
+      "Independent \u2192 Deliberate \u2192 Vote",
+      "Independent \u2192 Deliberate \u2192 Synthesize",
+      "Independent \u2192 Weighted Majority Vote",
+      "Agenda Setter + Veto"
+    ],
+    "benchmarks": [
+      "AIMO"
+    ],
+    "n_questions": 100,
+    "n_replications": 1,
+    "temperature": 0.0
+  },
+  "random_seeds": {}
+}
