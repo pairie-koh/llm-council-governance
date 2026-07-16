@@ -50,5 +50,21 @@ Thumbs.db
 # Claude Code
 .claude/
 
+# Experiment scratch logs (top-level of experiments/ only; results_*/ dirs
+# with real data are committed deliberately)
+experiments/*.log
+experiments/*.err
+experiments/scout_log*.txt
+experiments/scout_err*.txt
+experiments/smoke_log*.txt
+
+# Experiment caches and throwaway result dirs
+experiments/.cache/
+experiments/results_*smoke*/
+experiments/results_dryfire/
+
+# Checkpoint backups
+*.json.bak
+
 # Results - keep example but ignore large data files
 # experiments/results/pilot_results.json  # Uncomment to exclude large results
