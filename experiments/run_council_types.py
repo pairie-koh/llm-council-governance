@@ -653,8 +653,11 @@ async def run_council_types(
             async with lock:
                 results.append(rec)
                 completed += 1
-                save_results(results, filepath)
+                # Save every 5 (not every record): the box runs under memory
+                # pressure and a full-file json.dump per record was enough to
+                # hit MemoryError. Worst case on crash: 5 cells re-bought.
                 if completed % 5 == 0 or completed == len(todo):
+                    save_results(results, filepath)
                     spent = sum(
                         r.get("cost") or 0
                         for r in results
