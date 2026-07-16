@@ -365,6 +365,50 @@ def write_stage1(tmp_path: Path, records: List[dict]) -> Path:
     return path
 
 
+class TestConfigureCouncil:
+    """The --council path for the Fable-free / near-equals experiment."""
+
+    def _restore(self):
+        rct.COUNCIL = list(rct.COUNCIL_V2_MODELS)
+        rct.CHAIR = rct.CHAIRMAN_V2_MODEL
+        rct.ADVOCATES = list(rct.ADVOCATE_MODELS)
+        rct.CABINET_CHAIRMEN = {"cabinet": rct.CHAIRMAN_V2_MODEL, "cabinet_opus": rct.OPUS}
+
+    def test_fable_free_sets_opus_chair_and_advocates(self):
+        try:
+            rct.configure_council([
+                "openai/gpt-5.6-sol",
+                "google/gemini-3.1-pro-preview",
+                "x-ai/grok-4.5",
+                "anthropic/claude-opus-4.8",
+            ])
+            assert "anthropic/claude-fable-5" not in rct.COUNCIL
+            assert rct.CHAIR == rct.OPUS  # Fable gone -> Opus chairs (free)
+            assert "anthropic/claude-opus-4.8" not in rct.ADVOCATES  # judge can't advocate
+            assert set(rct.ADVOCATES) == {
+                "openai/gpt-5.6-sol",
+                "google/gemini-3.1-pro-preview",
+                "x-ai/grok-4.5",
+            }
+            assert rct.CABINET_CHAIRMEN["cabinet"] == rct.OPUS
+        finally:
+            self._restore()
+
+    def test_explicit_chair_override(self):
+        try:
+            rct.configure_council(list(rct.COUNCIL_V2_MODELS), chair="x-ai/grok-4.5")
+            assert rct.CHAIR == "x-ai/grok-4.5"
+        finally:
+            self._restore()
+
+    def test_wrong_size_rejected(self):
+        try:
+            with pytest.raises(SystemExit):
+                rct.configure_council(["openai/gpt-5.6-sol", "x-ai/grok-4.5"])  # only 2
+        finally:
+            self._restore()
+
+
 class TestCheckpointAndDryRun:
     def _stage1_two_disagreements(self, tmp_path: Path) -> Path:
         recs = (

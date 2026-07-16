@@ -59,6 +59,8 @@ CABINET_CHAIRMEN = {
     "cabinet_opus": "anthropic/claude-opus-4.8",
 }
 
+OPUS = "anthropic/claude-opus-4.8"
+
 # Advocates are the non-Anthropic council members: the judge is Fable 5, and
 # a Fable advocate arguing before a Fable judge would confound the court arm.
 ADVOCATE_MODELS = [
@@ -75,6 +77,31 @@ SHUFFLE_SEED = 42
 EXCERPT_CHARS = 1500
 COST_PER_PAID_CALL = 0.223  # dry-run estimate per OpenRouter call
 COUNCILOR_LABELS = ("A", "B", "C", "D")
+
+# Runtime-mutable council composition. Defaults to the full v2 council;
+# main() can swap it via --council (e.g. the Fable-free / near-equals
+# experiment: GPT + Gemini + Grok + Opus). The runtime functions below read
+# these globals at call time, so main() sets them before the run starts.
+COUNCIL: List[str] = list(COUNCIL_V2_MODELS)
+CHAIR: str = CHAIRMAN_V2_MODEL
+ADVOCATES: List[str] = list(ADVOCATE_MODELS)
+
+
+def configure_council(models: List[str], chair: Optional[str] = None) -> None:
+    """Set the active council. Chair defaults to Fable if present, else Opus
+    (both anthropic-direct, so the chair/judge is free). Advocates are the
+    non-anthropic members, since an anthropic advocate arguing before an
+    anthropic judge would confound the court arm."""
+    global COUNCIL, CHAIR, ADVOCATES, CABINET_CHAIRMEN
+    if len(models) != len(COUNCILOR_LABELS):
+        raise SystemExit(
+            f"--council needs exactly {len(COUNCILOR_LABELS)} models "
+            f"(the anonymization labels are {list(COUNCILOR_LABELS)}); got {len(models)}"
+        )
+    COUNCIL = list(models)
+    CHAIR = chair or (CHAIRMAN_V2_MODEL if CHAIRMAN_V2_MODEL in COUNCIL else OPUS)
+    ADVOCATES = [m for m in COUNCIL if not is_anthropic_direct(m)]
+    CABINET_CHAIRMEN = {"cabinet": CHAIR, "cabinet_opus": OPUS}
 
 # Mirror stage-1 concurrency: Anthropic direct is rate-limited more tightly.
 ANTHROPIC_MAX_CONCURRENT = 4
@@ -99,8 +126,8 @@ def result_key(record: dict) -> Tuple[str, str]:
 
 
 def load_stage1(path: Path) -> List[dict]:
-    """Stage-1 records for the 4 council members only (Opus side-arm dropped)."""
-    return [r for r in load_results(path) if r["model"] in COUNCIL_V2_MODELS]
+    """Stage-1 records for the active council members only."""
+    return [r for r in load_results(path) if r["model"] in COUNCIL]
 
 
 def partition_questions(
@@ -121,7 +148,7 @@ def partition_questions(
     disagreement: List[str] = []
     for qid in sorted(by_q):
         members = by_q[qid]
-        if set(members) != set(COUNCIL_V2_MODELS):
+        if set(members) != set(COUNCIL):
             continue
         if any(m["outcome"] not in ("correct", "wrong") for m in members.values()):
             continue
@@ -404,7 +431,7 @@ def plan_advocates(
     counter = 0
     for qid in ordered_qids:
         for letter in sorted({r["predicted"] for r in clean[qid].values()}):
-            plan[(qid, letter)] = ADVOCATE_MODELS[counter % len(ADVOCATE_MODELS)]
+            plan[(qid, letter)] = ADVOCATES[counter % len(ADVOCATES)]
             counter += 1
     return plan
 
@@ -451,10 +478,10 @@ async def court_record(
         rec["outcome"] = "no_answer"  # refused advocate: no substitution
         return _stamp(rec)
 
-    raw = await routed_call(client, CHAIRMAN_V2_MODEL, build_judge_prompt(question_text, briefs), sems)
+    raw = await routed_call(client, CHAIR, build_judge_prompt(question_text, briefs), sems)
     raws.append(raw)
     rec["cost"] = openrouter_cost(raws)
-    responses["judge"] = {"model": CHAIRMAN_V2_MODEL, "content": raw["content"]}
+    responses["judge"] = {"model": CHAIR, "content": raw["content"]}
     if raw["error"]:
         rec["error"] = f"judge: {raw['error']}"
         rec["outcome"] = "error"
@@ -485,7 +512,7 @@ async def peer_review_record(
         return model, await routed_call(client, model, prompt, sems)
 
     ballots: List[List[str]] = []
-    for model, raw in await asyncio.gather(*(one_reviewer(m) for m in COUNCIL_V2_MODELS)):
+    for model, raw in await asyncio.gather(*(one_reviewer(m) for m in COUNCIL)):
         raws.append(raw)
         responses[model] = {"content": raw["content"]}
         if raw["error"]:
@@ -526,16 +553,16 @@ async def peer_review_record(
 
 def paid_calls_for(council_type: str, members: Dict[str, dict]) -> int:
     """OpenRouter calls a (type, question) cell will buy. Anthropic-direct is $0."""
-    chairman_paid = 0 if is_anthropic_direct(CHAIRMAN_V2_MODEL) else 1
+    judge_paid = 0 if is_anthropic_direct(CHAIR) else 1
     if council_type == "jury":
         return 0
     if council_type in CABINET_CHAIRMEN:
         return 0 if is_anthropic_direct(CABINET_CHAIRMEN[council_type]) else 1
     if council_type == "court":
         n_letters = len({r["predicted"] for r in members.values()})
-        return n_letters + chairman_paid  # advocates are all non-Anthropic
+        return n_letters + judge_paid  # advocates are the non-Anthropic members
     if council_type == "peer_review":
-        return sum(1 for m in COUNCIL_V2_MODELS if not is_anthropic_direct(m))
+        return sum(1 for m in COUNCIL if not is_anthropic_direct(m))
     raise ValueError(f"unknown council type: {council_type}")
 
 
@@ -681,10 +708,10 @@ async def run_council_types(
 def _subset_baselines(
     clean: Dict[str, Dict[str, dict]], qids: List[str]
 ) -> Tuple[float, float]:
-    """(solo-Fable accuracy, jury accuracy) over a question subset."""
+    """(best-chair-model accuracy, jury accuracy) over a question subset."""
     if not qids:
         return float("nan"), float("nan")
-    fable_correct = sum(1 for q in qids if clean[q][CHAIRMAN_V2_MODEL]["is_correct"])
+    fable_correct = sum(1 for q in qids if clean[q][CHAIR]["is_correct"])
     jury_correct = 0
     for q in qids:
         gt = next(iter(clean[q].values()))["ground_truth"]
@@ -752,8 +779,9 @@ def analyze(results: List[dict], stage1: List[dict]) -> None:
         else:
             print("  minority-correct rescue: n/a (no minority cells attempted)")
         print(f"  OpenRouter cost: ${cost:.2f}")
+        chair_name = CHAIR.split("/")[-1]
         print(
-            f"  baselines on same subset: solo-Fable {fable_acc:.1%} | jury {jury_acc:.1%}"
+            f"  baselines on same subset: solo-{chair_name} {fable_acc:.1%} | jury {jury_acc:.1%}"
         )
         print(
             f"  pool-level accuracy (unanimous answered with unanimous letter): "
@@ -788,11 +816,36 @@ def main() -> None:
         help="cap API-calling types to the first N disagreement questions "
         "(seeded-shuffle order); jury always runs on all",
     )
+    parser.add_argument(
+        "--council",
+        default=None,
+        help="comma-separated council model slugs (exactly 4). Default: the "
+        "v2 council. For the Fable-free / near-equals experiment pass "
+        "'openai/gpt-5.6-sol,google/gemini-3.1-pro-preview,x-ai/grok-4.5,"
+        "anthropic/claude-opus-4.8'.",
+    )
+    parser.add_argument(
+        "--chair",
+        default=None,
+        help="chairman/judge model slug. Default: Fable if in the council, else Opus.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="print plan + cost, no calls")
     parser.add_argument("--stage1", default=str(STAGE1_RESULTS), help="stage-1 results path")
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--analyze-only", action="store_true")
     args = parser.parse_args()
+
+    if args.council:
+        configure_council(
+            [m.strip() for m in args.council.split(",") if m.strip()], args.chair
+        )
+    elif args.chair:
+        configure_council(list(COUNCIL_V2_MODELS), args.chair)
+
+    # cabinet_opus is redundant once the default chair is already Opus (its
+    # whole point was contrasting an Opus chair against the Fable chair).
+    if args.types == ",".join(ALL_TYPES) and CHAIR == OPUS:
+        args.types = ",".join(t for t in ALL_TYPES if t != "cabinet_opus")
 
     types = parse_types(args.types)
     stage1_path = Path(args.stage1)
