@@ -48,7 +48,16 @@ from backend.evaluation.hle import HLEBenchmark
 from backend.model_router import is_anthropic_direct, query_model_routed
 from experiments.run_phase2_scout import REFUSAL_MARKERS, load_results, save_results
 
-ALL_TYPES = ("jury", "cabinet", "court", "peer_review")
+ALL_TYPES = ("jury", "cabinet", "cabinet_opus", "court", "peer_review")
+
+# cabinet_opus: identical mechanism to cabinet but chaired by Opus 4.8 — a
+# chairman WEAKER than the council's best member. Tests whether council
+# exposure transfers accuracy downhill (lifting a weak chairman) the way it
+# drags a strong one down. Also anthropic-direct, so $0.
+CABINET_CHAIRMEN = {
+    "cabinet": CHAIRMAN_V2_MODEL,
+    "cabinet_opus": "anthropic/claude-opus-4.8",
+}
 
 # Advocates are the non-Anthropic council members: the judge is Fable 5, and
 # a Fable advocate arguing before a Fable judge would confound the court arm.
@@ -362,14 +371,16 @@ async def cabinet_record(
     qid: str,
     question_text: str,
     members: Dict[str, dict],
+    council_type: str = "cabinet",
 ) -> dict:
     """One chairman call over the anonymized answers."""
-    rec = base_record("cabinet", qid, members)
+    chairman = CABINET_CHAIRMEN[council_type]
+    rec = base_record(council_type, qid, members)
     mapping = councilor_mapping(qid, list(members))
     rec["councilors"] = mapping
-    raw = await routed_call(client, CHAIRMAN_V2_MODEL, build_cabinet_prompt(question_text, mapping, members), sems)
+    raw = await routed_call(client, chairman, build_cabinet_prompt(question_text, mapping, members), sems)
     rec["cost"] = openrouter_cost([raw])
-    rec["responses"] = {"chairman": {"model": CHAIRMAN_V2_MODEL, "content": raw["content"]}}
+    rec["responses"] = {"chairman": {"model": chairman, "content": raw["content"]}}
     if raw["error"]:
         rec["error"] = f"chairman: {raw['error']}"
         rec["outcome"] = "error"
@@ -518,8 +529,8 @@ def paid_calls_for(council_type: str, members: Dict[str, dict]) -> int:
     chairman_paid = 0 if is_anthropic_direct(CHAIRMAN_V2_MODEL) else 1
     if council_type == "jury":
         return 0
-    if council_type == "cabinet":
-        return chairman_paid
+    if council_type in CABINET_CHAIRMEN:
+        return 0 if is_anthropic_direct(CABINET_CHAIRMEN[council_type]) else 1
     if council_type == "court":
         n_letters = len({r["predicted"] for r in members.values()})
         return n_letters + chairman_paid  # advocates are all non-Anthropic
@@ -631,8 +642,8 @@ async def run_council_types(
 
         async def worker(ctype: str, qid: str) -> None:
             nonlocal completed
-            if ctype == "cabinet":
-                rec = await cabinet_record(client, sems, qid, qtexts[qid], clean[qid])
+            if ctype in CABINET_CHAIRMEN:
+                rec = await cabinet_record(client, sems, qid, qtexts[qid], clean[qid], ctype)
             elif ctype == "court":
                 rec = await court_record(
                     client, sems, qid, qtexts[qid], clean[qid], advocate_plan
@@ -647,7 +658,7 @@ async def run_council_types(
                     spent = sum(
                         r.get("cost") or 0
                         for r in results
-                        if r["council_type"] in ("court", "peer_review", "cabinet")
+                        if r["council_type"] != "jury"
                     )
                     print(
                         f"  {completed}/{len(todo)} done | OpenRouter spend ${spent:.2f}",
