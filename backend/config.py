@@ -77,10 +77,35 @@ MODEL_WEIGHTS = {
 COUNCIL_SIZES = [2, 3, 4, 5, 6]
 
 # =============================================================================
+# Council v2 (phase 2, slugs verified on OpenRouter 2026-07-15)
+# =============================================================================
+# Strongest model per vendor as of July 2026. Fable 5 is chairman-designate;
+# Opus 4.8 is the intra-vendor error-correlation side-arm (M6), not a member.
+COUNCIL_V2_MODELS = [
+    "openai/gpt-5.6-sol",
+    "google/gemini-3.1-pro-preview",
+    "anthropic/claude-fable-5",
+    "x-ai/grok-4.5",
+]
+CHAIRMAN_V2_MODEL = "anthropic/claude-fable-5"
+SIDE_ARM_MODELS = ["anthropic/claude-opus-4.8"]
+
+# =============================================================================
 # API Configuration
 # =============================================================================
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+# Direct Anthropic routing: anthropic/* models can bypass OpenRouter when an
+# Anthropic key is present (research credits => $0 marginal cost to us).
+ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+# OpenRouter slug -> Anthropic API model id
+ANTHROPIC_MODEL_IDS = {
+    "anthropic/claude-fable-5": "claude-fable-5",
+    "anthropic/claude-opus-4.8": "claude-opus-4-8",
+}
 
 # Default API timeout in seconds (90s with 7 retries = ample time)
 DEFAULT_API_TIMEOUT = float(os.getenv("API_TIMEOUT", "90.0"))
