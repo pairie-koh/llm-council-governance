@@ -108,7 +108,17 @@ async def _query_anthropic(
                 "provider": "anthropic-direct",
                 "error": None,
             }
-        except (httpx.TransportError, httpx.HTTPStatusError, RuntimeError, KeyError, ValueError) as e:
+        # MemoryError is retryable here: the host box runs under memory
+        # pressure (home-dir git scans ballooning to GBs) and allocation
+        # failures inside a single HTTP read shouldn't kill the whole run.
+        except (
+            httpx.TransportError,
+            httpx.HTTPStatusError,
+            RuntimeError,
+            KeyError,
+            ValueError,
+            MemoryError,
+        ) as e:
             last_err = e
             if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 400:
                 break  # non-retryable
@@ -159,7 +169,17 @@ async def _query_openrouter(
                 "provider": "openrouter",
                 "error": None,
             }
-        except (httpx.TransportError, httpx.HTTPStatusError, RuntimeError, KeyError, ValueError) as e:
+        # MemoryError is retryable here: the host box runs under memory
+        # pressure (home-dir git scans ballooning to GBs) and allocation
+        # failures inside a single HTTP read shouldn't kill the whole run.
+        except (
+            httpx.TransportError,
+            httpx.HTTPStatusError,
+            RuntimeError,
+            KeyError,
+            ValueError,
+            MemoryError,
+        ) as e:
             last_err = e
             if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 400:
                 break  # non-retryable
