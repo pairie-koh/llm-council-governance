@@ -19,14 +19,25 @@ clean set.
 
 ## Status
 
-| Structure | Cost | State |
-|-----------|------|-------|
-| jury | $0 (offline) | DONE — 49.8% vs best member 53.6% (near break-even; dominance penalty removed, correlation penalty ~4pt remains) |
-| cabinet (Opus chair) | $0 (Anthropic key) | DONE / running free — see results_council_fablefree/ |
-| court (Opus judge) | ~$26-31 | BLOCKED on funded OpenRouter key |
-| peer_review | ~$35-42 | BLOCKED on funded OpenRouter key |
+Free structures computed to `experiments/results_council_fablefree/`. Baseline
+is the best member; on the 140-question disagreement subset the best member is
+Gemini at **47.1%** (pool-level best member Gemini 53.6%).
 
-Free structures already computed to `experiments/results_council_fablefree/`.
+| Structure | Disagreement acc (n=140) | vs best member (47.1%) | Cost | State |
+|-----------|--------------------------|------------------------|------|-------|
+| jury | 39.3% (55/140) | **-7.8** | $0 | DONE |
+| cabinet (Opus chair) | **52.9% (74/140)** | **+5.8** | $0 | DONE |
+| court (Opus judge) | — | — | ~$26-31 | BLOCKED on funded key |
+| peer_review | — | — | ~$35-42 | BLOCKED on funded key |
+
+**Headline (partial, n=140, single run): the regime flips.** In the
+Fable-inclusive council NO structure beat the best member (best = cabinet at
+-7 vs solo Fable). In the Fable-free / near-equals council the **cabinet beats
+the best member by +5.8** on the disagreement subset (+2.7 at pool level:
+cabinet 56.3% vs Gemini 53.6%). The jury still loses (-7.8) because correlation
+and 2-2 ties survive Fable's removal — so it is the reasoning-based structure,
+not the vote, that wins among near-equals. Court + peer review will confirm
+whether the pattern holds across structures.
 
 ## To finish (when a funded OpenRouter key is in `.env`)
 
