@@ -51,6 +51,7 @@ from backend.config import COUNCIL_V2_MODELS
 from backend.evaluation.hle import HLEBenchmark
 from backend.model_router import is_anthropic_direct, query_model_routed
 from experiments.run_phase2_scout import load_results, save_results
+import experiments.run_council_types as rct
 from experiments.run_council_types import (
     EXCERPT_CHARS,
     ordered_disagreement,
@@ -60,6 +61,19 @@ from experiments.run_council_types import (
 )
 
 ALL_ARMS = ("A", "B", "D1", "D2")
+
+# Runtime-mutable council. Defaults to the full v2 council; main() can swap it
+# via --council (e.g. the Fable-free {GPT, Gemini, Grok, Opus} council, where
+# the arms measure updating vs herding among near-equals). Setting it also
+# configures run_council_types so partition_questions/load_stage1 agree.
+COUNCIL: List[str] = list(COUNCIL_V2_MODELS)
+
+
+def configure_council(models: List[str], chair: Optional[str] = None) -> None:
+    """Point both this module and run_council_types at the same council."""
+    global COUNCIL
+    rct.configure_council(models, chair)  # drives partition_questions/load_stage1
+    COUNCIL = list(models)
 
 STAGE1_RESULTS = Path("experiments/results_phase2_stage1/stage1_results.json")
 DEFAULT_OUTPUT_DIR = "experiments/results_phase2_arms"
@@ -264,7 +278,7 @@ async def run_arms(arms: List[str], n_questions: Optional[int], output_dir: str)
         (arm, member, qid)
         for arm in arms
         for qid in capped
-        for member in COUNCIL_V2_MODELS
+        for member in COUNCIL
         if (arm, member, qid) not in done
     ]
     n_paid = sum(1 for _, m, _ in todo if not is_anthropic_direct(m))
@@ -314,7 +328,7 @@ def analyze(results: List[dict]) -> None:
         if not recs:
             continue
         print(f"\nARM {arm} (n={len(recs)} member-cells)")
-        for model in COUNCIL_V2_MODELS:
+        for model in COUNCIL:
             ms = [r for r in recs if r["model"] == model]
             if not ms:
                 continue
@@ -339,7 +353,7 @@ def analyze(results: List[dict]) -> None:
     common = set(d1) & set(d2)
     if common:
         print(f"\nARMOR EFFECT (D2 vs D1, paired on {len(common)} member-cells)")
-        for model in COUNCIL_V2_MODELS:
+        for model in COUNCIL:
             pairs = [k for k in common if k[0] == model]
             if not pairs:
                 continue
@@ -361,7 +375,7 @@ def dry_run(arms: List[str], n_questions: Optional[int], output_dir: str) -> Non
         for r in load_results(Path(output_dir) / RESULTS_FILENAME)
         if not r.get("error")
     }
-    paid_models = [m for m in COUNCIL_V2_MODELS if not is_anthropic_direct(m)]
+    paid_models = [m for m in COUNCIL if not is_anthropic_direct(m)]
     todo_paid = sum(
         1
         for arm in arms
@@ -396,9 +410,22 @@ def main() -> None:
     parser.add_argument("--smoke", action="store_true", help="3 questions only")
     parser.add_argument("--n", type=int, default=None, help="cap questions (default: all disagreement)")
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument(
+        "--council",
+        default=None,
+        help="comma-separated council model slugs (4). Default: v2 council. "
+        "Fable-free: 'openai/gpt-5.6-sol,google/gemini-3.1-pro-preview,"
+        "x-ai/grok-4.5,anthropic/claude-opus-4.8'.",
+    )
+    parser.add_argument("--chair", default=None, help="unused by arms; kept for parity")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--analyze-only", action="store_true")
     args = parser.parse_args()
+
+    if args.council:
+        configure_council(
+            [m.strip() for m in args.council.split(",") if m.strip()], args.chair
+        )
 
     arms = parse_arms(args.arms)
     n = 3 if args.smoke else args.n
