@@ -39,6 +39,16 @@ and 2-2 ties survive Fable's removal — so it is the reasoning-based structure,
 not the vote, that wins among near-equals. Court + peer review will confirm
 whether the pattern holds across structures.
 
+**Recognition holds without Fable (confound resolved, offline, $0).** In
+Experiment 3 the Opus-chair recognition lift (+15.5) was confounded: the slate
+it picked from still contained Fable's usually-correct answer. On the Fable-
+free slate (genuine peers, no Fable answer to copy) the lift is **+14.4**
+(Opus generates 52.3% → recognizes 66.7%, n=111). Nearly identical, so
+recognition-exceeds-generation is a real property of the weak model, not an
+artifact of a dominant answer on the slate. This is the mechanism under the
++5.8 cabinet win. The per-member recognition table (peer-review style) still
+needs the paid Fable-free peer-review run.
+
 ## To finish (when a funded OpenRouter key is in `.env`)
 
 The `--council` flag is already merged to main. From the repo root:
