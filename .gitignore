@@ -67,6 +67,14 @@ experiments/council_types_run*.err
 # Crash artifacts (zero-filled checkpoints from power loss)
 *.zeroed-crash
 
+# LaTeX build artifacts (keep .tex, .pdf, .bbl, .bib, figures/)
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.blg
+paper/*.toc
+paper/*.synctex.gz
+
 # Experiment caches and throwaway result dirs
 experiments/.cache/
 experiments/results_*smoke*/
